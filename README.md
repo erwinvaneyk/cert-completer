@@ -29,5 +29,6 @@ Using Kustomize (requires kubectl > 1.15):
 kubectl apply -k github.com/erwinvaneyk/cert-completer//config/default
 ```
 
-Clone and modify [./config/default/kustomization.yaml] for alternative, 
-custom deployments.
+Clone and modify 
+[./config/default/kustomization.yaml](./config/default/kustomization.yaml) 
+for alternative, custom deployments.
