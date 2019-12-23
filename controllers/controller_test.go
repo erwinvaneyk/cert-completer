@@ -10,8 +10,8 @@ import (
 )
 
 // It should reconcile valid TLS secrets.
-func TestCACompleter_reconcileSecret_certChain(t *testing.T) {
-	ctrl := CACompleter{
+func TestCertCompleter_reconcileSecret_certChain(t *testing.T) {
+	ctrl := CertCompleter{
 		Log: zap.New(),
 	}
 
@@ -21,13 +21,13 @@ func TestCACompleter_reconcileSecret_certChain(t *testing.T) {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-secret",
+			Name:      "test-secret",
 			Namespace: "test-namespace",
 		},
-		Type:       corev1.SecretTypeTLS,
-		Data:       map[string][]byte{
-				"ca.crt": nil,
-				"tls.crt": []byte(strings.Join(certs, "")),
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"ca.crt":  nil,
+			"tls.crt": []byte(strings.Join(certs, "")),
 		},
 	}
 
@@ -39,8 +39,8 @@ func TestCACompleter_reconcileSecret_certChain(t *testing.T) {
 }
 
 // It should reconcile valid TLS secrets with just one certificate in the chain.
-func TestCACompleter_reconcileSecret_singleCert(t *testing.T) {
-	ctrl := CACompleter{
+func TestCertCompleter_reconcileSecret_singleCert(t *testing.T) {
+	ctrl := CertCompleter{
 		Log: zap.New(),
 	}
 
@@ -50,12 +50,12 @@ func TestCACompleter_reconcileSecret_singleCert(t *testing.T) {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-secret",
+			Name:      "test-secret",
 			Namespace: "test-namespace",
 		},
-		Type:       corev1.SecretTypeTLS,
-		Data:       map[string][]byte{
-			"ca.crt": nil,
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"ca.crt":  nil,
 			"tls.crt": []byte(certs[0]),
 		},
 	}
@@ -68,8 +68,8 @@ func TestCACompleter_reconcileSecret_singleCert(t *testing.T) {
 }
 
 // It should ignore non-TLS secrets.
-func TestCACompleter_reconcileSecret_nonTLS(t *testing.T) {
-	ctrl := CACompleter{
+func TestCertCompleter_reconcileSecret_nonTLS(t *testing.T) {
+	ctrl := CertCompleter{
 		Log: zap.New(),
 	}
 
@@ -79,12 +79,12 @@ func TestCACompleter_reconcileSecret_nonTLS(t *testing.T) {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-secret",
+			Name:      "test-secret",
 			Namespace: "test-namespace",
 		},
-		Type:       corev1.SecretTypeOpaque,
-		Data:       map[string][]byte{
-			"ca.crt": nil,
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"ca.crt":  nil,
 			"tls.crt": []byte(strings.Join(certs, "")),
 		},
 	}
@@ -95,8 +95,8 @@ func TestCACompleter_reconcileSecret_nonTLS(t *testing.T) {
 }
 
 // It should ignore complete TLS secrets (that already have a CA).
-func TestCACompleter_reconcileSecret_completeSecret(t *testing.T) {
-	ctrl := CACompleter{
+func TestCertCompleter_reconcileSecret_completeSecret(t *testing.T) {
+	ctrl := CertCompleter{
 		Log: zap.New(),
 	}
 
@@ -106,12 +106,12 @@ func TestCACompleter_reconcileSecret_completeSecret(t *testing.T) {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-secret",
+			Name:      "test-secret",
 			Namespace: "test-namespace",
 		},
-		Type:       corev1.SecretTypeTLS,
-		Data:       map[string][]byte{
-			"ca.crt": []byte(certs[len(certs) - 1]),
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"ca.crt":  []byte(certs[len(certs)-1]),
 			"tls.crt": []byte(strings.Join(certs, "")),
 		},
 	}
@@ -121,10 +121,9 @@ func TestCACompleter_reconcileSecret_completeSecret(t *testing.T) {
 	assert.Empty(t, updatedSecret)
 }
 
-
 // It should ignore empty TLS secrets.
-func TestCACompleter_reconcileSecret_emptySecret(t *testing.T) {
-	ctrl := CACompleter{
+func TestCertCompleter_reconcileSecret_emptySecret(t *testing.T) {
+	ctrl := CertCompleter{
 		Log: zap.New(),
 	}
 
@@ -134,12 +133,12 @@ func TestCACompleter_reconcileSecret_emptySecret(t *testing.T) {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-secret",
+			Name:      "test-secret",
 			Namespace: "test-namespace",
 		},
-		Type:       corev1.SecretTypeTLS,
-		Data:       map[string][]byte{
-			"ca.crt": nil,
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"ca.crt":  nil,
 			"tls.crt": nil,
 		},
 	}
@@ -150,8 +149,8 @@ func TestCACompleter_reconcileSecret_emptySecret(t *testing.T) {
 }
 
 // It should error on an invalid TLS secret.
-func TestCACompleter_reconcileSecret_invalidCert(t *testing.T) {
-	ctrl := CACompleter{
+func TestCertCompleter_reconcileSecret_invalidCert(t *testing.T) {
+	ctrl := CertCompleter{
 		Log: zap.New(),
 	}
 
@@ -161,12 +160,12 @@ func TestCACompleter_reconcileSecret_invalidCert(t *testing.T) {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-secret",
+			Name:      "test-secret",
 			Namespace: "test-namespace",
 		},
-		Type:       corev1.SecretTypeTLS,
-		Data:       map[string][]byte{
-			"ca.crt": nil,
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"ca.crt":  nil,
 			"tls.crt": []byte(certs[0][:len(certs[0])-100]), // partial cert
 		},
 	}

@@ -1,4 +1,4 @@
-module github.com/erwinvaneyk/ca-completer
+module github.com/erwinvaneyk/cert-completer
 
 go 1.13
 

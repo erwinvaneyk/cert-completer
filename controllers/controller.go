@@ -17,7 +17,13 @@ import (
 
 const ErrInvalidCertChain = "failed to parse certificate chain in tls.crt"
 
-type CACompleter struct {
+// CertCompleter parses the TLS certificate chain in a secret with an empty
+// ca.tls, and updates the secret with the last (top-most) certificate in this
+// chain as the ca.crt.
+//
+// Although this does not guarantee that ca.crt contains a root CA, it does
+// guarantee that the CA present is valid for the TLS secret.
+type CertCompleter struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
@@ -25,7 +31,7 @@ type CACompleter struct {
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
 
-func (c *CACompleter) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+func (c *CertCompleter) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	ctx := context.Background()
 	log := c.Log.WithValues("secret", req.NamespacedName.String())
 
@@ -50,11 +56,10 @@ func (c *CACompleter) Reconcile(req reconcile.Request) (reconcile.Result, error)
 		log.Info("Updated the ca.crt of the TLS secret.")
 	}
 
-
 	return reconcile.Result{}, nil
 }
 
-func (c *CACompleter) SetupWithManager(mgr ctrl.Manager) error {
+func (c *CertCompleter) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Secret{}).
 		Complete(c)
@@ -64,7 +69,7 @@ func (c *CACompleter) SetupWithManager(mgr ctrl.Manager) error {
 //
 // If the secret was updated, the updated result is returned. Otherwise, if
 // the secret was not updated, the return value is nil.
-func (c *CACompleter) reconcileSecret(secret *corev1.Secret) (updated *corev1.Secret, err error){
+func (c *CertCompleter) reconcileSecret(secret *corev1.Secret) (updated *corev1.Secret, err error) {
 	log := c.Log.WithValues("secret", fmt.Sprintf("%s/%s", secret.Namespace, secret.Name))
 	log.Info("Evaluating secret...")
 

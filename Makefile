@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= erwinvaneyk/ca-completer:latest
+IMG ?= erwinvaneyk/cert-completer:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -45,6 +45,7 @@ vet:
 # Generate code
 generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
+	./hack/generate-k8s-resources.sh
 
 # Build the docker image
 docker-build: test

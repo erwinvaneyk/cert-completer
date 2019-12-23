@@ -17,7 +17,7 @@ package main
 
 import (
 	"flag"
-	"github.com/erwinvaneyk/ca-completer/controllers"
+	"github.com/erwinvaneyk/cert-completer/controllers"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,11 +62,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.CACompleter{
+	if err = (&controllers.CertCompleter{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CACompleter")
+		setupLog.Error(err, "unable to create controller", "controller", "CertCompleter")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
