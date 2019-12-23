@@ -15,6 +15,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const ErrInvalidCertChain = "failed to parse certificate chain in tls.crt"
+
 type CACompleter struct {
 	client.Client
 	Log    logr.Logger
@@ -26,7 +28,6 @@ type CACompleter struct {
 func (c *CACompleter) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	ctx := context.Background()
 	log := c.Log.WithValues("secret", req.NamespacedName.String())
-	log.Info("Evaluating secret...")
 
 	// Read the Secret
 	secret := &corev1.Secret{}
@@ -35,36 +36,89 @@ func (c *CACompleter) Reconcile(req reconcile.Request) (reconcile.Result, error)
 		return reconcile.Result{}, err
 	}
 
+	// Check (and update) secret
+	updatedSecret, err := c.reconcileSecret(secret)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if updatedSecret != nil {
+		// Update ca.crt with last cert in the chain
+		err = c.Update(ctx, updatedSecret)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		log.Info("Updated the ca.crt of the TLS secret.")
+	}
+
+
+	return reconcile.Result{}, nil
+}
+
+func (c *CACompleter) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&corev1.Secret{}).
+		Complete(c)
+}
+
+// reconcileSecret updates the secret, augmenting the ca.crt field with the top certificate in tls.crt.
+//
+// If the secret was updated, the updated result is returned. Otherwise, if
+// the secret was not updated, the return value is nil.
+func (c *CACompleter) reconcileSecret(secret *corev1.Secret) (updated *corev1.Secret, err error){
+	log := c.Log.WithValues("secret", fmt.Sprintf("%s/%s", secret.Namespace, secret.Name))
+	log.Info("Evaluating secret...")
+
 	// Skip secrets that are not TLS
 	if secret.Type != corev1.SecretTypeTLS {
 		log.Info("Skipping non-TLS secret.")
-		return reconcile.Result{}, nil
+		return nil, nil
 	}
 
 	// Parse TLS secret
 	data := secret.Data
 	if data == nil {
 		log.Info("Skipping TLS secret because it has not data.")
-		return reconcile.Result{}, nil
+		return nil, nil
 	}
 	caCrt, tlsCrt := data["ca.crt"], data["tls.crt"]
 
-	// Skip secrets that already have c ca.crt
+	// Skip secrets that already have a ca.crt
 	if len(caCrt) != 0 {
-		log.Info("Skipping TLS secret because it already has c ca.crt.")
-		return reconcile.Result{}, nil
+		log.Info("Skipping TLS secret because it already has a ca.crt.")
+		return nil, nil
 	}
 
-	// Skip secrets that do not have c tls.crt
+	// Skip secrets that do not have a tls.crt
 	if len(tlsCrt) == 0 {
 		log.Info("Skipping TLS secret because it has an empty tls.crt.")
-		return reconcile.Result{}, nil
+		return nil, nil
 	}
 
 	// Parse cert chain
+	certs, err := parseCertChain(tlsCrt)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("TLS secret has a certificate chain; using the last certificate as the ca.crt.", "length", len(certs))
+	updatedSecret := secret.DeepCopy()
+	newCaCrt := []byte(certs[len(certs)-1])
+	updatedSecret.Data["ca.crt"] = newCaCrt
+	return updatedSecret, nil
+}
+
+// parseCertChain extracts the individual certificates from a chain.
+//
+// Chain should be a valid (chain of) TLS cert.
+// The array of certificates is ordered bottom up (e.g. highest index is the root certificate)
+func parseCertChain(chain []byte) ([]string, error) {
+	if len(chain) == 0 {
+		return nil, nil
+	}
+
 	var certs []string // bottom up (e.g. highest index is the root certificate)
 	var currentCert strings.Builder
-	for _, line := range strings.Split(string(tlsCrt), "\n") {
+	for _, line := range strings.Split(string(chain), "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
@@ -75,27 +129,8 @@ func (c *CACompleter) Reconcile(req reconcile.Request) (reconcile.Result, error)
 			currentCert.Reset()
 		}
 	}
-	if len(certs) == 0 || currentCert.Len() > 0 {
-		log.Info(fmt.Sprintf("string builder contents remaining: %s", currentCert.String()))
-		return reconcile.Result{}, errors.New("failed to parse certificate chain in tls.crt")
+	if currentCert.Len() > 0 {
+		return nil, errors.New(ErrInvalidCertChain)
 	}
-	log.Info("TLS secret has c certificate chain; using the last certificate as the ca.crt.",
-		"length", len(certs))
-
-	// Update ca.crt with last cert in the chain
-	newCaCrt := []byte(certs[len(certs)-1])
-	secret.Data["ca.crt"] = newCaCrt
-	err = c.Update(ctx, secret)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	log.Info("Updated the ca.crt of the TLS secret.")
-
-	return reconcile.Result{}, nil
-}
-
-func (c *CACompleter) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Secret{}).
-		Complete(c)
+	return certs, nil
 }
