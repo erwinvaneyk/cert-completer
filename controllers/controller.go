@@ -31,8 +31,7 @@ type CertCompleter struct {
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
 
-func (c *CertCompleter) Reconcile(req reconcile.Request) (reconcile.Result, error) {
-	ctx := context.Background()
+func (c *CertCompleter) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	log := c.Log.WithValues("secret", req.NamespacedName.String())
 
 	// Read the Secret
