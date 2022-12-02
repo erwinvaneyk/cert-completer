@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= erwinvaneyk/cert-completer:latest
+IMG ?= dwsr/cert-completer:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -48,12 +48,12 @@ generate: controller-gen
 	./hack/generate-k8s-resources.sh
 
 # Build the docker image
-docker-build: test
-	docker build . -t ${IMG}
+docker-build:
+	docker buildx build . --tag ${IMG} --platform linux/amd64,linux/arm64 --load
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker buildx build . --tag ${IMG} --platform linux/amd64,linux/arm64 --push
 
 # find or download controller-gen
 # download controller-gen if necessary
