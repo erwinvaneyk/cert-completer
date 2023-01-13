@@ -48,12 +48,12 @@ generate: controller-gen
 	./hack/generate-k8s-resources.sh
 
 # Build the docker image
-docker-build: test
-	docker build . -t ${IMG}
+docker-build:
+	docker buildx build . --tag ${IMG} --platform linux/amd64,linux/arm64 --load
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker buildx build . --tag ${IMG} --platform linux/amd64,linux/arm64 --push
 
 # find or download controller-gen
 # download controller-gen if necessary
